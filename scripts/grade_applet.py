@@ -115,8 +115,8 @@ class GradeApplet(ctk.CTk):
         path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV file", "*.csv")], initialfile="grade_template.csv")
         if path:
             try:
-                pd.DataFrame(columns=["Name", "Email", "Grade"]).to_csv(path, index=False)
-                messagebox.showinfo("Success", "Template saved with columns: Name, Email, Grade.")
+                pd.DataFrame(columns=["Name", "Email", "Grade", "Feedback"]).to_csv(path, index=False)
+                messagebox.showinfo("Success", "Template saved with columns: Name, Email, Grade, Feedback.")
             except Exception as e: messagebox.showerror("Error", str(e))
 
     def import_file(self):
@@ -130,7 +130,8 @@ class GradeApplet(ctk.CTk):
             self.col_map = {
                 "name": cols.get("name"),
                 "email": cols.get("email"),
-                "grade": cols.get("grade")
+                "grade": cols.get("grade"),
+                "feedback": cols.get("feedback")
             }
 
             # Validation
@@ -163,14 +164,24 @@ class GradeApplet(ctk.CTk):
             row = self.df.iloc[idx]
         except: return
         
-        name_col = self.col_map["name"] or self.df.columns[0]
-        email_col = self.col_map["email"] or (self.df.columns[1] if len(self.df.columns) > 1 else name_col)
-        grade_col = self.col_map["grade"] or (self.df.columns[2] if len(self.df.columns) > 2 else name_col)
+        name_col = self.col_map["name"]
+        email_col = self.col_map["email"]
+        grade_col = self.col_map["grade"]
+        feedback_col = self.col_map["feedback"]
 
-        name = str(row[name_col])
-        email = str(row[email_col])
-        grade = str(row[grade_col])
-        preview_content = self.body_text.get("1.0", "end-1c").replace("$NAME$", name).replace("$GRADE$", grade)
+        name = str(row[name_col]) if name_col and name_col in row else ""
+        email = str(row[email_col]) if email_col and email_col in row else (str(row.iloc[1]) if len(row) > 1 else "")
+        grade = str(row[grade_col]) if grade_col and grade_col in row else ""
+        feedback = str(row[feedback_col]) if feedback_col and feedback_col in row else ""
+        
+        # If positional fallbacks are needed (for files without headers)
+        if not name and not self.col_map["name"]: name = str(row.iloc[0])
+        if not grade and not self.col_map["grade"] and len(row) > 2: grade = str(row.iloc[2])
+
+        preview_content = self.body_text.get("1.0", "end-1c")
+        preview_content = preview_content.replace("$NAME$", name)
+        preview_content = preview_content.replace("$GRADE$", grade)
+        preview_content = preview_content.replace("$FEEDBACK$", feedback)
         self.preview_box.configure(state="normal")
         self.preview_box.delete("1.0", "end")
         self.preview_box.insert("1.0", f"To: {email}\nSubject: {self.subject_entry.get()}\n---\n\n{preview_content}")
@@ -207,16 +218,23 @@ class GradeApplet(ctk.CTk):
         success_count = 0; fail_count = 0; total = len(self.df)
         
         try:
-            name_col = self.col_map["name"] or self.df.columns[0]
-            email_col = self.col_map["email"] or (self.df.columns[1] if len(self.df.columns) > 1 else name_col)
-            grade_col = self.col_map["grade"] or (self.df.columns[2] if len(self.df.columns) > 2 else name_col)
+            name_col = self.col_map["name"]
+            email_col = self.col_map["email"]
+            grade_col = self.col_map["grade"]
+            feedback_col = self.col_map["feedback"]
 
             with smtplib.SMTP("smtpserver.sfu.ca", 25, timeout=10) as server:
                 for i, row in self.df.iterrows():
-                    name = str(row[name_col])
-                    recipient = str(row[email_col])
-                    grade = str(row[grade_col])
-                    body = template.replace("$NAME$", name).replace("$GRADE$", grade)
+                    name = str(row[name_col]) if name_col and name_col in row else ""
+                    recipient = str(row[email_col]) if email_col and email_col in row else (str(row.iloc[1]) if len(row) > 1 else "")
+                    grade = str(row[grade_col]) if grade_col and grade_col in row else ""
+                    feedback = str(row[feedback_col]) if feedback_col and feedback_col in row else ""
+                    
+                    # Positional fallbacks
+                    if not name and not self.col_map["name"]: name = str(row.iloc[0])
+                    if not grade and not self.col_map["grade"] and len(row) > 2: grade = str(row.iloc[2])
+
+                    body = template.replace("$NAME$", name).replace("$GRADE$", grade).replace("$FEEDBACK$", feedback)
                     
                     try:
                         msg = EmailMessage()

@@ -22,5 +22,5 @@ class ConfigManager:
             "username": "",
             "sender_email": "",
             "subject": "",
-            "body": "Hello $NAME$,\n\nYou received $GRADE$ on the recent assessment.\n\nBest,\n[Instructor Name]"
+            "body": "Hello $NAME$,\n\nYou received $GRADE$ on the recent assessment.\n\nFeedback: $FEEDBACK$\n\nBest,\n[Instructor Name]"
         }
