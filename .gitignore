@@ -1,0 +1,19 @@
+# Internal Antigravity Files
+task.md
+uuid.txt
+walkthrough.md
+implementation_plan.md
+logs/
+artifacts/
+*.pb
+*.pbtxt
+
+# Python/Build Files
+__pycache__/
+build/
+dist/
+*.spec
+
+# System Files
+.DS_Store
+Thumbs.db
