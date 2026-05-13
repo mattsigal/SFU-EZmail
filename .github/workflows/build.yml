@@ -26,13 +26,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller customtkinter pandas openpyxl
 
-    - name: Build with PyInstaller (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        python -m PyInstaller --noconsole --onefile --clean --name SFU-EZmail --add-data "C:\Users\runneradmin\AppData\Local\pip\cache\**\customtkinter;customtkinter/" scripts/grade_applet.py
-      # Note: On GitHub runners, we need to find the customtkinter path dynamically or assume standard pip path. 
-      # Actually, a safer way is to use a small python script to find the path.
-
     - name: Get CustomTkinter Path
       id: ctk-path
       shell: bash
