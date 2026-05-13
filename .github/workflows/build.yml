@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -43,15 +46,24 @@ jobs:
       if: matrix.os == 'macos-latest'
       run: |
         python -m PyInstaller --noconsole --onefile --clean --name SFU-EZmail --add-data "${{ steps.ctk-path.outputs.path }}:customtkinter/" scripts/grade_applet.py
+        cd dist
+        zip -r ../SFU-EZmail-macOS.zip SFU-EZmail.app SFU-EZmail || true
+        # Also zip the standalone binary if it exists
+        zip -r ../SFU-EZmail-macOS.zip SFU-EZmail || true
 
-    - name: Upload Artifacts
+    - name: Upload Artifacts (Windows)
+      if: matrix.os == 'windows-latest'
       uses: actions/upload-artifact@v4
       with:
-        name: SFU-EZmail-${{ matrix.os }}
-        path: |
-          dist/SFU-EZmail.exe
-          dist/SFU-EZmail.app
-          dist/SFU-EZmail
+        name: SFU-EZmail-Windows
+        path: dist/SFU-EZmail.exe
+
+    - name: Upload Artifacts (macOS)
+      if: matrix.os == 'macos-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: SFU-EZmail-macOS
+        path: SFU-EZmail-macOS.zip
 
   release:
     needs: build
@@ -67,8 +79,7 @@ jobs:
       with:
         files: |
           SFU-EZmail.exe
-          SFU-EZmail.app
-          SFU-EZmail
+          SFU-EZmail-macOS.zip
         tag_name: ${{ github.ref_name }}
         name: Release ${{ github.ref_name }}
         draft: false
