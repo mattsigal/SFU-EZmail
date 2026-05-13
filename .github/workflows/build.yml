@@ -1,0 +1,60 @@
+name: Build SFU-EZmail
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller customtkinter pandas openpyxl
+
+    - name: Build with PyInstaller (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        python -m PyInstaller --noconsole --onefile --clean --name SFU-EZmail --add-data "C:\Users\runneradmin\AppData\Local\pip\cache\**\customtkinter;customtkinter/" scripts/grade_applet.py
+      # Note: On GitHub runners, we need to find the customtkinter path dynamically or assume standard pip path. 
+      # Actually, a safer way is to use a small python script to find the path.
+
+    - name: Get CustomTkinter Path
+      id: ctk-path
+      shell: bash
+      run: |
+        CTK_PATH=$(python -c "import customtkinter; import os; print(os.path.dirname(customtkinter.__file__))")
+        echo "path=$CTK_PATH" >> $GITHUB_OUTPUT
+
+    - name: Build SFU-EZmail (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        python -m PyInstaller --noconsole --onefile --clean --name SFU-EZmail --add-data "${{ steps.ctk-path.outputs.path }};customtkinter/" scripts/grade_applet.py
+
+    - name: Build SFU-EZmail (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        python -m PyInstaller --noconsole --onefile --clean --name SFU-EZmail --add-data "${{ steps.ctk-path.outputs.path }}:customtkinter/" scripts/grade_applet.py
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: SFU-EZmail-${{ matrix.os }}
+        path: |
+          dist/SFU-EZmail.exe
+          dist/SFU-EZmail.app
+          dist/SFU-EZmail
