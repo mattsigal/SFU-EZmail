@@ -2,7 +2,8 @@ name: Build SFU-EZmail
 
 on:
   push:
-    branches: [ main ]
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -51,3 +52,26 @@ jobs:
           dist/SFU-EZmail.exe
           dist/SFU-EZmail.app
           dist/SFU-EZmail
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        merge-multiple: true
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          SFU-EZmail.exe
+          SFU-EZmail.app
+          SFU-EZmail
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
